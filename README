@@ -3,5 +3,8 @@ cancer GWAS project with Michael Newton, Fred Boehm, and others.
 
 Steps:
 
-- First, make a sqlite database from the files provided by Fred, via
-  make_database.R.
+- Prepare the database:
+  - Make a sqlite database from the files provided by Fred, via
+    make_database.R.
+  - Verify that the database was built correctly, via python3
+    verify_database.py.
