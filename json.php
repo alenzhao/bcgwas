@@ -18,9 +18,6 @@ error_reporting(E_ALL);
  */
 $aColumns = array("gene_name", "gene_symbol", "chromosome", "start", "stop");
 
-/* Indexed column (used for fast and accurate table cardinality) */
-$sIndexColumn = "gene_id";
-
 /* DB table to use */
 $sTable = "expr";
 
@@ -116,7 +113,7 @@ if (isset($_GET["iDisplayStart"]) && $_GET["iDisplayLength"] != "-1") {
  */
 
 /* Total data set length */
-$query = "select count($sIndexColumn) from $sTable";
+$query = "select count(*) from $sTable";
 $stmt = $conn->prepare($query);
 $result = $stmt->execute();
 $arr = $result->fetchArray();
@@ -124,7 +121,7 @@ $iTotal = $arr[0];
 
 /* Data set length after filtering */
 $query = "
-    select count($sIndexColumn)
+    select count(*)
     from   $sTable
     $where_seg
 ";
