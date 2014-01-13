@@ -16,7 +16,21 @@ error_reporting(E_ALL);
  * DataTables. Use a space (" ") where you want to insert a non-database
  * field (for example a counter or static image)
  */
-$aColumns = array("gene_name", "gene_symbol", "chromosome", "start", "stop");
+//$aColumns = array("gene_name", "gene_symbol", "chromosome", "start", "stop");
+$aColumns = array(
+    "gene_name",
+    "gene_symbol",
+    "gene_accession",
+    "entrez_id",
+    "chromosome",
+    "cytoband",
+    "start",
+    "stop",
+    "strand",
+    "cross_hybridization",
+    "probeset_type",
+    "X3014", "B708", "X3111", "B290", "B895", "X3593", "B900", "X4005", "B402", "B996", "X4114", "A492", "B420", "X4279", "A513", "B482", "X5471", "A602", "B499", "X5509", "A707", "B562", "X5716", "A856", "B580", "X5800", "A857", "X5837", "A932", "X5899", "B101", "B625", "N10", "N11", "N18", "N19", "N21", "N25", "N27", "N28", "N29", "N31", "N32", "N34", "N39", "N40", "N41", "N44", "N45", "N47", "N50", "N52", "N54", "N57", "N78", "N80", "N81", "N84", "N88", "N95", "N97", "N104"
+);
 
 /* DB table to use */
 $sTable = "expr";
