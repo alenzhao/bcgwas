@@ -90,7 +90,7 @@
 <div class='ui-layout-center'>
 <div id='error_message'></div>
 <div id="table-wrapper">
-<table border="0" cellspacing="0" cellpadding="0">
+<table border="0" cellspacing="0" cellpadding="0" class="stripe">
   <thead>
     <tr>
     <th>SNP Name</th>
@@ -105,8 +105,8 @@
 </div> <!-- ui-layout-center -->
 
 <div class='ui-layout-east'>
-<!-- <canvas id='canvasxpress_canvas' width='540' height='540'></canvas> -->
-<div id="boxplot-wrapper" style="width: 540px;"></div>
+<!-- 120 * 3 (width of 3 boxplots) + 0 (fudge) = 360 -->
+<div id="boxplot-wrapper" style="width: 360px;"></div>
 </div>
 
 <script>
@@ -140,9 +140,10 @@ function boxplot(snp_id, gene_id) {
     else                                gene_display = json.gene_id;
 
     // Config.
+    var pane_height = nf_the_layout.east.state.innerHeight;
     var margin = {top: 10, right: 50, bottom: 20, left: 50},
         width = 120 - margin.left - margin.right,
-        height = 500 - margin.top - margin.bottom;
+        height = pane_height - margin.top - margin.bottom;
 
     // Parse the data. Along the way, find the min and max values.
     var min = Infinity,
@@ -210,6 +211,7 @@ $(document).ready(function() {
   // $('select') .change(update);
 
   var layout = init_layout();
+  window.nf_the_layout = layout;
   $('#show_definitions').click(function() { show_definitions(layout); });
 
   function get_selected(id) {
@@ -234,6 +236,8 @@ $(document).ready(function() {
 
   function resize_boxplot() {
     console.log(["resizing boxplot:", theDataTable]);
+    var pane_height = nf_the_layout.east.state.innerHeight;
+    $("#boxplot-wrapper svg").height(pane_height);
   }
 
   function get_table_header_and_footer_height() {
