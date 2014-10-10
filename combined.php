@@ -106,7 +106,16 @@
 
 <div class='ui-layout-east'>
 <!-- 120 * 3 (width of 3 boxplots) + 0 (fudge) = 360 -->
+<div id="boxplot-header" style="width: 360px; text-align: center; font-weight: bold;"></div>
 <div id="boxplot-wrapper" style="width: 360px;"></div>
+<table id="boxplot-footer" width="360" cellspacing="0" cellpadding="0">
+<tr>
+<td id="boxplot-footer-AA" align="center"></td>
+<td id="boxplot-footer-AB" align="center"></td>
+<td id="boxplot-footer-BB" align="center"></td>
+</tr>
+</table>
+<div id="boxplot-caption" style="width: 360px"></div>
 </div>
 
 <script>
@@ -124,6 +133,17 @@ function iqr(k) {
   };
 }
 
+function compute_boxplot_height() {
+  var pane_height = nf_the_layout.east.state.innerHeight;
+  var header_height = $("#boxplot-header").outerHeight();
+  var footer_height = $("#boxplot-footer").outerHeight();
+  var caption_height = $("#boxplot-caption").outerHeight();
+  var height = pane_height - header_height - footer_height - caption_height;
+  if (height < 25)
+    height = 25;
+  return height;
+}
+
 function boxplot(snp_id, gene_id) {
   $.ajax({
     "url": "boxplot_feed.php",
@@ -133,59 +153,93 @@ function boxplot(snp_id, gene_id) {
     },
     "dataType": "json"
   }).success(function(json) {
-    var gene_display;
-    if (json.gene_symbol != "")         gene_display = json.gene_symbol;
-    else if (json.gene_accession != "") gene_display = json.gene_accession;
-    else if (json.entrez_id != "")      gene_display = json.entrez_id;
-    else                                gene_display = json.gene_id;
-
-    // Config.
-    var pane_height = nf_the_layout.east.state.innerHeight;
-    var margin = {top: 10, right: 50, bottom: 20, left: 50},
-        width = 120 - margin.left - margin.right,
-        height = pane_height - margin.top - margin.bottom;
-
-    // Parse the data. Along the way, find the min and max values.
-    var min = Infinity,
-        max = -Infinity,
-        num_unknown = 0;
-    data = [[], [], []];
-    if (json.snps.length != json.exprs.length)
-      throw "snps and exprs are not of same length";
-    for (var i = 0; i < json.snps.length; ++i) {
-      var snp = json.snps[i];
-      var expr = json.exprs[i];
-      var j;
-      if      (snp == "AA") j = 0;
-      else if (snp == "AB") j = 1;
-      else if (snp == "BB") j = 2;
-      else if (snp == "unknown") { ++num_unknown; continue; }
-      else throw "Unknown snp: " + snp;
-      data[j].push(expr);
-      if (expr > max) max = expr;
-      if (expr < min) min = expr;
-    }
-    console.log(data);
-
-    var chart = d3.box()
-        .whiskers(iqr(1.5))
-        .width(width)
-        .height(height);
-    chart.domain([min, max]);
-
-    var svg = d3.select("#boxplot-wrapper").selectAll("svg")
-        .data(data);
-    svg.enter().append("svg")
-        .attr("class", "boxplot")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.bottom + margin.top)
-      .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-        .call(chart)
-    svg.select("g").call(chart);
-
-    console.log("made it");
+    window.boxplot_json_data = json;
+    draw_boxplot();
   });
+}
+
+function draw_boxplot() {
+  var json = window.boxplot_json_data;
+
+  // Parse the data. Along the way, find the min and max values.
+  var min = Infinity,
+      max = -Infinity,
+      num_unknown = 0;
+  data = [[], [], []];
+  if (json.snps.length != json.exprs.length)
+    throw "snps and exprs are not of same length";
+  for (var i = 0; i < json.snps.length; ++i) {
+    var snp = json.snps[i];
+    var expr = json.exprs[i];
+    var j;
+    if      (snp == "AA") j = 0;
+    else if (snp == "AB") j = 1;
+    else if (snp == "BB") j = 2;
+    else if (snp == "unknown") { ++num_unknown; continue; }
+    else throw "Unknown snp: " + snp;
+    data[j].push(expr);
+    if (expr > max) max = expr;
+    if (expr < min) min = expr;
+  }
+  console.log(data);
+  
+  // Determine the main display name of the gene.
+  var gene_display;
+  if (json.gene_symbol != "")         { gene_display = json.gene_symbol;    used = "gene_symbol"; }
+  else if (json.gene_accession != "") { gene_display = json.gene_accession; used = "gene_accession"; }
+  else if (json.entrez_id != "")      { gene_display = json.entrez_id;      used = "entrez_id"; }
+  else                                { gene_display = json.gene_id;        used = "gene_id"; }
+  
+  // Determine how to display details about the gene.
+  var pieces = [];
+  if (json.gene_name != "")                                  pieces.push(json.gene_name);
+  if (json.gene_symbol != ""    && used != "gene_symbol")    pieces.push("Symbol: " + json.gene_symbol);
+  if (json.gene_accession != "" && used != "gene_accession") pieces.push("Accession: " + json.gene_accession);
+  if (json.entrez_id != ""      && used != "entrez_id")      pieces.push("Entrez: " + json.entrez_id);
+  var gene_details = pieces.join(", ");
+  
+  // Add the header.
+  $("#boxplot-header").html(gene_display + "'s expression, grouped by " + json.snp_name + "'s genotype");
+  $("#boxplot-header").css("padding-bottom", "10px");
+  
+  // Add the footer.
+  $("#boxplot-footer-AA").html("" + data[0].length + " AA samples");
+  $("#boxplot-footer-AB").html("" + data[1].length + " AB samples");
+  $("#boxplot-footer-BB").html("" + data[2].length + " BB samples");
+  //$("#boxplot-footer td").css("padding-top", "10px");
+  $("#boxplot-footer td").css("padding-bottom", "10px");
+  
+  // Add the caption.
+  var boxplot_caption = "This figure shows the gene expression of " + gene_display;
+  if (gene_details != "")
+    boxplot_caption += " (" + gene_details + ")";
+  boxplot_caption += ", from samples grouped by their alleles at the SNP " + json.snp_name + ".";
+  $("#boxplot-caption").html(boxplot_caption);
+  
+  // Config.
+  var plot_height = compute_boxplot_height();
+  var margin = {top: 10, right: 50, bottom: 20, left: 50},
+      width = 120 - margin.left - margin.right,
+      height = plot_height - margin.top - margin.bottom;
+  
+  var chart = d3.box()
+      .whiskers(iqr(1.5))
+      .width(width)
+      .height(height);
+  chart.domain([min, max]);
+  
+  var svg = d3.select("#boxplot-wrapper").selectAll("svg")
+      .data(data);
+  svg.enter().append("svg")
+      .attr("class", "boxplot")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.bottom + margin.top)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(chart)
+  svg.select("g").call(chart);
+  
+  console.log("made it");
 }
 
 var theDataTable;
@@ -236,8 +290,10 @@ $(document).ready(function() {
 
   function resize_boxplot() {
     console.log(["resizing boxplot:", theDataTable]);
-    var pane_height = nf_the_layout.east.state.innerHeight;
-    $("#boxplot-wrapper svg").height(pane_height);
+    var height = compute_boxplot_height();
+    $("#boxplot-wrapper svg").height(height);
+    if (window.boxplot_json_data)
+      draw_boxplot();
   }
 
   function get_table_header_and_footer_height() {
