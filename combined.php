@@ -118,6 +118,12 @@
 <div id="boxplot-caption" style="width: 360px"></div>
 </div>
 
+<div class='ui-layout-south'>
+<form action="#" id="download-form">
+<button>Download</button> the SNPs filtered above, together with their associated gene expression data, as a pair of CSV files.
+</form>
+</div>
+
 <script>
 // Returns a function to compute the interquartile range. (http://bl.ocks.org/mbostock/4061502)
 function iqr(k) {
@@ -195,7 +201,7 @@ function draw_boxplot() {
   if (json.gene_name != "")                                  pieces.push(json.gene_name);
   if (json.gene_symbol != ""    && used != "gene_symbol")    pieces.push("Symbol: " + json.gene_symbol);
   if (json.gene_accession != "" && used != "gene_accession") pieces.push("Accession: " + json.gene_accession);
-  if (json.entrez_id != ""      && used != "entrez_id")      pieces.push("Entrez: " + json.entrez_id);
+  if (json.entrez_id != ""      && used != "entrez_id")      pieces.push("Entrez id: " + json.entrez_id);
   var gene_details = pieces.join(", ");
   
   // Add the header.
@@ -303,6 +309,38 @@ $(document).ready(function() {
             5);                                                   // fudge
   }
 
+  function get_filter_data() {
+    var data = []
+    data.push({"name": "filter_snp_name",       "value": $("#filter_snp_name").val()});
+    data.push({"name": "filter_gene_name",      "value": $("#filter_gene_name").val()});
+    data.push({"name": "filter_gene_symbol",    "value": $("#filter_gene_symbol").val()});
+    data.push({"name": "filter_gene_accession", "value": $("#filter_gene_accession").val()});
+    data.push({"name": "filter_entrez_id",      "value": $("#filter_entrez_id").val()});
+    data.push({"name": "filter_chromosome",     "value": get_selected("filter_chromosome")});
+    data.push({"name": "filter_start",          "value": $("#filter_start").val()});
+    data.push({"name": "filter_stop",           "value": $("#filter_stop").val()});
+    return data;
+  }
+
+  $("#download-form").submit(function() {
+    var data = get_filter_data();
+    var a = "@";
+    var wisc = "wisc.edu";
+    var nf_address = "na" + "th" + "anae" + a + "cs." + wisc;
+    $.fileDownload("download.php", {
+      "data": data,
+      "preparingMessageHtml": "We are creating a ZIP file with the selected " +
+                              "SNPs and associated gene expression data. " +
+                              "Please wait.",
+      "failMessageHtml": "The download failed. Please inform the authors of " +
+                         "the paper, especially this website's maintainer, " +
+                         "N Fillmore, " + nf_address + ". In the meantime, " +
+                         "you can try repeating the download in a different " + 
+                         "web browser, e.g., Chrome on a desktop computer."
+    });
+    return false;
+  });
+
   theDataTable = $("#table-wrapper table").DataTable({
     "dom": "rtiS",
     //"bPaginate": false,
@@ -313,14 +351,7 @@ $(document).ready(function() {
     "ajaxSource": "combined_feed.php",
     "filter": false,
     "serverData": function (source, data, callback) {
-      data.push({"name": "filter_snp_name",       "value": $("#filter_snp_name").val()});
-      data.push({"name": "filter_gene_name",      "value": $("#filter_gene_name").val()});
-      data.push({"name": "filter_gene_symbol",    "value": $("#filter_gene_symbol").val()});
-      data.push({"name": "filter_gene_accession", "value": $("#filter_gene_accession").val()});
-      data.push({"name": "filter_entrez_id",      "value": $("#filter_entrez_id").val()});
-      data.push({"name": "filter_chromosome",     "value": get_selected("filter_chromosome")});
-      data.push({"name": "filter_start",          "value": $("#filter_start").val()});
-      data.push({"name": "filter_stop",           "value": $("#filter_stop").val()});
+      data = data.concat(get_filter_data());
       $.getJSON(source, data, function (json) { callback(json) });
     },
     "columnDefs": [{

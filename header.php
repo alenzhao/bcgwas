@@ -33,6 +33,8 @@ MathJax.Hub.Config({
 <script type="text/javascript" src="boxplot.js"></script>
 <link rel="stylesheet" href="boxplot.css" type="text/css"></link>
 
+<script type="text/javascript" src="jquery.fileDownload.js"></script>
+
 <style>
 body, td { font-family: sans-serif; font-size: 9pt; }
 </style>
