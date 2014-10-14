@@ -22,8 +22,6 @@ d3.box = function() {
           min = d[0],
           max = d[n - 1];
 
-      console.log({"this": this, "g": g});
-
       // Compute quartiles. Must return exactly 3 elements, or null.
       var quartileData = d.quartiles = (n > 0) ? quartiles(d) : null;
 
@@ -172,7 +170,6 @@ d3.box = function() {
           .remove();
 
       // Update outliers.
-      console.log(outlierIndices);
       var outlier = g.selectAll("circle.outlier")
           .data(outlierIndices, Number);
 

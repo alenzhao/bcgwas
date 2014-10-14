@@ -156,6 +156,7 @@ function boxplot(snp_id, gene_id) {
   }).success(function(json) {
     window.boxplot_json_data = json;
     draw_boxplot();
+    resize_boxplot();
   });
 }
 
@@ -182,7 +183,6 @@ function draw_boxplot() {
     if (expr > max) max = expr;
     if (expr < min) min = expr;
   }
-  console.log(data);
   
   // Determine the main display name of the gene.
   var gene_display;
@@ -239,8 +239,13 @@ function draw_boxplot() {
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
       .call(chart)
   svg.select("g").call(chart);
-  
-  console.log("made it");
+}
+
+function resize_boxplot() {
+  var height = compute_boxplot_height();
+  $("#boxplot-wrapper svg").height(height);
+  if (window.boxplot_json_data)
+    draw_boxplot();
 }
 
 var theDataTable;
@@ -285,16 +290,7 @@ $(document).ready(function() {
     // var h = $("div.dataTables_scrollHeadInner").width();
     // $("div.dataTables_scrollHead").width(w + "px");
     // $("div.dataTables_scrollBody").width(w + "px");
-    console.log(["resizing table:", theDataTable]);
     theDataTable.draw(); // XXX is this really good?
-  }
-
-  function resize_boxplot() {
-    console.log(["resizing boxplot:", theDataTable]);
-    var height = compute_boxplot_height();
-    $("#boxplot-wrapper svg").height(height);
-    if (window.boxplot_json_data)
-      draw_boxplot();
   }
 
   function get_table_header_and_footer_height() {
@@ -351,7 +347,8 @@ $(document).ready(function() {
           links.push("<a href='javascript:boxplot(" + snp_id + ", " + gene_id + ")'>" + gene_symbol + "</a>");
         }
         return links.join(", ");
-      }
+      },
+      "sortable": false
     }],
     // Scroller-based infinite scrolling: 
     //"scrollY": "200px",
