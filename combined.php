@@ -83,6 +83,7 @@
   </div>
   <div class="input-line">
     <input type="submit" value="Filter">
+    <span style="margin-left: 3em">or <a href="bcgwas_download.zip">download</a> the raw data</span>
   </div>
 </form>
 </div> <! -- ui-layout-north -->
@@ -116,12 +117,6 @@
 </tr>
 </table>
 <div id="boxplot-caption" style="width: 360px"></div>
-</div>
-
-<div class='ui-layout-south'>
-<form action="#" id="download-form">
-<button>Download</button> the SNPs filtered above, together with their associated gene expression data, as a pair of CSV files.
-</form>
 </div>
 
 <script>
@@ -321,25 +316,6 @@ $(document).ready(function() {
     data.push({"name": "filter_stop",           "value": $("#filter_stop").val()});
     return data;
   }
-
-  $("#download-form").submit(function() {
-    var data = get_filter_data();
-    var a = "@";
-    var wisc = "wisc.edu";
-    var nf_address = "na" + "th" + "anae" + a + "cs." + wisc;
-    $.fileDownload("download.php", {
-      "data": data,
-      "preparingMessageHtml": "We are creating a ZIP file with the selected " +
-                              "SNPs and associated gene expression data. " +
-                              "Please wait.",
-      "failMessageHtml": "The download failed. Please inform the authors of " +
-                         "the paper, especially this website's maintainer, " +
-                         "N Fillmore, " + nf_address + ". In the meantime, " +
-                         "you can try repeating the download in a different " + 
-                         "web browser, e.g., Chrome on a desktop computer."
-    });
-    return false;
-  });
 
   theDataTable = $("#table-wrapper table").DataTable({
     "dom": "rtiS",
