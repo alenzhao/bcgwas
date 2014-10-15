@@ -1,17 +1,9 @@
-<?php include 'header.php'; ?>
+<?php include "header.php"; ?>
 <style>
 .input-line { margin-top: 0.6ex; margin-bottom: 0.6ex; }
-/* .input-wrapper { margin-right: 1.8em; } */
-.rotate {
-  -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
-  -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
-  -webkit-transform: rotate(-90.0deg);  /* Saf3.1+, Chrome */
-  filter:  progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083);  /* IE6,IE7 */
-  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083)"; /* IE8 */
-}
 </style>
 
-<div class='ui-layout-north'>
+<div class="ui-layout-north">
 <form action="#" id="filter-form">
   <div class="input-line">
   <b>Find SNPs where...</b>
@@ -83,13 +75,12 @@
   </div>
   <div class="input-line">
     <input type="submit" value="Filter">
-    <span style="margin-left: 3em">or <a href="bcgwas_download.zip">download</a> the raw data</span>
+    <span style="margin-left: 2.4em">(or <a href="bcgwas_download.zip">download</a> the raw data)</span>
   </div>
 </form>
 </div> <! -- ui-layout-north -->
 
-<div class='ui-layout-center'>
-<div id='error_message'></div>
+<div class="ui-layout-center">
 <div id="table-wrapper">
 <table border="0" cellspacing="0" cellpadding="0" class="stripe">
   <thead>
@@ -105,8 +96,8 @@
 </div> <!-- table-wrapper -->
 </div> <!-- ui-layout-center -->
 
-<div class='ui-layout-east'>
 <!-- 120 * 3 (width of 3 boxplots) + 0 (fudge) = 360 -->
+<div class="ui-layout-east">
 <div id="boxplot-header" style="width: 360px; text-align: center; font-weight: bold;"></div>
 <div id="boxplot-wrapper" style="width: 360px;"></div>
 <table id="boxplot-footer" width="360" cellspacing="0" cellpadding="0">
@@ -117,10 +108,174 @@
 </tr>
 </table>
 <div id="boxplot-caption" style="width: 360px"></div>
-</div>
+</div> <!-- ui-layout-east -->
 
 <script>
-// Returns a function to compute the interquartile range. (http://bl.ocks.org/mbostock/4061502)
+//////////////////////
+// Layout functions //
+//////////////////////
+
+// Initializes the layout.
+function init_layout() {
+  nf_globals.layout = $("body").layout({
+    "resizable": false,
+    "closable": false,
+    "north": {
+      "size": "auto",
+      "closable": true
+    },
+    "center": {
+      "onresize": resize_table
+    },
+    "east": {
+      "size": (360 + 10) + "px",
+      "onresize": resize_boxplot
+    }
+  });
+}
+
+////////////////////
+// Form functions //
+////////////////////
+
+// Returns the selected chromosome.
+function get_selected_chromosome() {
+  var x = $("#filter_chromosome :selected").text();
+  if (x == "(any)")
+    return "";
+  else
+    return x;
+}
+
+// Extracts any data entered in the form to filter SNPs.
+function get_form_data() {
+  var data = []
+  data.push({"name": "filter_snp_name",       "value": $("#filter_snp_name").val()});
+  data.push({"name": "filter_gene_name",      "value": $("#filter_gene_name").val()});
+  data.push({"name": "filter_gene_symbol",    "value": $("#filter_gene_symbol").val()});
+  data.push({"name": "filter_gene_accession", "value": $("#filter_gene_accession").val()});
+  data.push({"name": "filter_entrez_id",      "value": $("#filter_entrez_id").val()});
+  data.push({"name": "filter_chromosome",     "value": get_selected_chromosome()});
+  data.push({"name": "filter_start",          "value": $("#filter_start").val()});
+  data.push({"name": "filter_stop",           "value": $("#filter_stop").val()});
+  return data;
+}
+
+// Initializes the form to filter SNPs.
+function init_form() {
+  $("#filter-form").submit(function() {
+    resize_table();
+    return false;
+  });
+}
+
+//////////////////////////
+// Data table functions //
+//////////////////////////
+
+// Returns the combined height of the data table's header and footer.
+function get_table_header_and_footer_height() {
+  return ($("#table-wrapper .dataTables_scrollHead").height() + // header
+          $("#table-wrapper .dataTables_info").height() +       // footer
+          5);                                                   // fudge
+}
+
+// Returns the height we should set the table body to be.
+function get_table_body_height() {
+  var total = nf_globals.layout.center.state.innerHeight;
+  var height = total - get_table_header_and_footer_height();
+  return height;
+}
+
+// Resizes the data table to fill its pane.
+function resize_table() {
+  // Update the scrollable area's height.
+  $("div.dataTables_scrollBody").height(get_table_body_height() + "px");
+
+  // Redraw the table. XXX: Is this necessary?
+  nf_globals.data_table.draw();
+}
+
+// Initializes the data table. The layout should have already been initialized
+// before this function is called.
+function init_table() {
+  nf_globals.data_table = $("#table-wrapper table").DataTable({
+
+    // Specify which DOM elements to add around the table.
+    "dom": "rtiS",
+
+    // Show a "processing" indicator when the table is being updated.
+    "processing": true,
+
+    // Get the data to display as needed from the server.
+    "serverSide": true,
+    "ajaxSource": "combined_feed.php",
+    "serverData": function(source, data, callback) {
+      // The data object is a dictionary representing the GET variables we'll
+      // send to combined_feed.php. DataTables has already added any variables
+      // related to sorting and offsets/limits. Below, we "manually" extract
+      // additional GET variables from the filter form and add them to this
+      // dictionary. Then, we carry out the AJAX request and return control to
+      // DataTables by calling "callback".
+      data = data.concat(get_form_data());
+      $.getJSON(source, data, function (json) { callback(json) });
+    },
+
+    // Use infinite scrolling provided by the "Scroller" plugin. It is
+    // important but tricky to get the scrollY height correct here. We set a
+    // provisional value here (otherwise weird things happen), but it is
+    // updated by resize_table, which is called when the table is done being
+    // initialized.
+    "scroller": {"loadingIndicator": false},
+    "scrollY": get_table_body_height() + "px",
+    "scrollX": "100%",
+    "initComplete": resize_table,
+
+    // Do some fancy stuff to display the "Containing Genes" column.
+    "columnDefs": [{
+      // The "Containing Genes" column is the fourth one (index 3).
+      "targets": 3,
+
+      // Don't allow the user to sort by this column.
+      "sortable": false,
+
+      // Render this column in a pretty way. The format of the raw data for
+      // this column is
+      //
+      //    snp_id;gene_id1,gene_symbol1;gene_id2,gene_symbol2...
+      //
+      //  unless there are no such containing genes, in which case it is
+      //
+      //    snp_id; (note trailing semicolon)
+      //
+      // We display each gene as a link with the gene symbol as the linked
+      // text, and the link itself being to a javascript function that plots a
+      // boxplot for the appropriate gene/SNP pair.
+      "render": function(data, type, full, meta) {
+        var genes = data.split(";");
+        var snp_id = genes.shift();
+        if (genes[0] == "") // if there's no containing gene, don't show link
+          return "-";
+        var links = [];
+        for (var i = 0; i < genes.length; ++i) {
+          var pieces = genes[i].split(",");
+          var gene_id = pieces[0];
+          var gene_symbol = pieces[1];
+          var href = "javascript:boxplot(" + snp_id + ", " + gene_id + ")";
+          links.push("<a href='" + href + "'>" + gene_symbol + "</a>");
+        }
+        return links.join(", ");
+      }
+    }]
+  });
+}
+
+///////////////////////
+// Boxplot functions //
+///////////////////////
+
+// Returns a function to compute the interquartile range.
+// (From http://bl.ocks.org/mbostock/4061502)
 function iqr(k) {
   return function(d, i) {
     var q1 = d.quartiles[0],
@@ -134,8 +289,11 @@ function iqr(k) {
   };
 }
 
+// Computes the height to make the SVG elements that actually display each
+// boxplot. This is the height of the east pane that contains the boxplots,
+// minus the heights of the text above and below the plots.
 function compute_boxplot_height() {
-  var pane_height = nf_the_layout.east.state.innerHeight;
+  var pane_height = nf_globals.layout.east.state.innerHeight;
   var header_height = $("#boxplot-header").outerHeight();
   var footer_height = $("#boxplot-footer").outerHeight();
   var caption_height = $("#boxplot-caption").outerHeight();
@@ -145,25 +303,10 @@ function compute_boxplot_height() {
   return height;
 }
 
-function boxplot(snp_id, gene_id) {
-  $.ajax({
-    "url": "boxplot_feed.php",
-    "data": {
-      "snp_id": snp_id,
-      "gene_id": gene_id
-    },
-    "dataType": "json"
-  }).success(function(json) {
-    window.boxplot_json_data = json;
-    draw_boxplot();
-    resize_boxplot();
-  });
-}
-
-function draw_boxplot() {
-  var json = window.boxplot_json_data;
-
-  // Parse the data. Along the way, find the min and max values.
+// Actually draws the boxplots.
+function draw_boxplot(json) {
+  // Parse the data, spliting up the expression levels among genotypes, and
+  // finding the min and max values.
   var min = Infinity,
       max = -Infinity,
       num_unknown = 0;
@@ -183,14 +326,14 @@ function draw_boxplot() {
     if (expr > max) max = expr;
     if (expr < min) min = expr;
   }
-  
+
   // Determine the main display name of the gene.
   var gene_display;
   if (json.gene_symbol != "")         { gene_display = json.gene_symbol;    used = "gene_symbol"; }
   else if (json.gene_accession != "") { gene_display = json.gene_accession; used = "gene_accession"; }
   else if (json.entrez_id != "")      { gene_display = json.entrez_id;      used = "entrez_id"; }
   else                                { gene_display = json.gene_id;        used = "gene_id"; }
-  
+
   // Determine how to display details about the gene.
   var pieces = [];
   if (json.gene_name != "")                                  pieces.push(json.gene_name);
@@ -198,194 +341,96 @@ function draw_boxplot() {
   if (json.gene_accession != "" && used != "gene_accession") pieces.push("Accession: " + json.gene_accession);
   if (json.entrez_id != ""      && used != "entrez_id")      pieces.push("Entrez id: " + json.entrez_id);
   var gene_details = pieces.join(", ");
-  
+
   // Add the header.
   $("#boxplot-header").html(gene_display + "'s expression, grouped by " + json.snp_name + "'s genotype");
   $("#boxplot-header").css("padding-bottom", "10px");
-  
+
   // Add the footer.
   $("#boxplot-footer-AA").html("" + data[0].length + " AA samples");
   $("#boxplot-footer-AB").html("" + data[1].length + " AB samples");
   $("#boxplot-footer-BB").html("" + data[2].length + " BB samples");
-  //$("#boxplot-footer td").css("padding-top", "10px");
   $("#boxplot-footer td").css("padding-bottom", "10px");
-  
+
   // Add the caption.
   var boxplot_caption = "This figure shows the gene expression of " + gene_display;
   if (gene_details != "")
     boxplot_caption += " (" + gene_details + ")";
   boxplot_caption += ", from samples grouped by their alleles at the SNP " + json.snp_name + ".";
   $("#boxplot-caption").html(boxplot_caption);
-  
-  // Config.
+
+  // Determine plot size and margins.
+  var plot_width = 120;
   var plot_height = compute_boxplot_height();
-  var margin = {top: 10, right: 50, bottom: 20, left: 50},
-      width = 120 - margin.left - margin.right,
-      height = plot_height - margin.top - margin.bottom;
-  
+  var margin = {top: 10, right: 50, bottom: 20, left: 50};
+  var width = plot_width - margin.left - margin.right;
+  var height = plot_height - margin.top - margin.bottom;
+
+  // Explicitly resize each boxplot's SVG element, if it exists. The d3 call
+  // below will only set the size of the SVG element when it is created, but
+  // this size could change if the window is resized or if the caption changes
+  // height.
+  $("#boxplot-wrapper svg").height(plot_height);
+
+  // Setup a d3 function to draw each boxplot.
   var chart = d3.box()
       .whiskers(iqr(1.5))
       .width(width)
       .height(height);
   chart.domain([min, max]);
-  
+
+  // Produce the boxplots, adding HTML/SVG elements if necessary.
   var svg = d3.select("#boxplot-wrapper").selectAll("svg")
       .data(data);
   svg.enter().append("svg")
       .attr("class", "boxplot")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.bottom + margin.top)
+      .attr("width", plot_width)
+      .attr("height", plot_height)
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
       .call(chart)
   svg.select("g").call(chart);
 }
 
+// Resizes the boxplots by fetching the cached JSON data from the last request
+// (if any) and completely redrawing everything.
 function resize_boxplot() {
-  var height = compute_boxplot_height();
-  $("#boxplot-wrapper svg").height(height);
-  if (window.boxplot_json_data)
-    draw_boxplot();
+  var json = nf_globals.boxplot_json;
+  if (json)
+    draw_boxplot(json);
 }
 
-var theDataTable;
+// Loads the genotype and expression data for the given SNP and gene, and when
+// it is available, draw the corresponding boxplots.
+function boxplot(snp_id, gene_id) {
+  $.ajax({
+    "url": "boxplot_feed.php",
+    "data": {
+      "snp_id": snp_id,
+      "gene_id": gene_id
+    },
+    "dataType": "json"
+  }).success(function(json) {
+    nf_globals.boxplot_json = json; // cache data in case we need to resize
+    draw_boxplot(json);
+  });
+}
+
+//////////
+// Main //
+//////////
+
+var nf_globals = {
+  layout: null,
+  data_table: null,
+  boxplot_json: null
+};
+
+// When the DOM is ready, initialize everything. It is important here that the
+// table is initialized after the layout.
 $(document).ready(function() {
-
-  function init_layout() {
-    var layout = $('body').layout({
-      'resizable': false,
-      'closable': false,
-      'north': {'size': 'auto'},
-      'east': {'size': '370px'},
-      'center__onresize': resize_table,
-      'east__onresize': resize_boxplot
-    });
-    return layout;
-  }
-
-  $('#definitions').hide();
-  $('#error_message').hide();
-
-  // $('#T')     .change(function() { onchange_T();      update(); });
-  // $('#method').change(function() { onchange_method(); update(); });
-  // $('select') .change(update);
-
-  var layout = init_layout();
-  window.nf_the_layout = layout;
-  $('#show_definitions').click(function() { show_definitions(layout); });
-
-  function get_selected(id) {
-    var x = $("#filter_chromosome :selected").text();
-    if (x == "(any)")
-      return "";
-    else
-      return x;
-  }
-
-  function resize_table() {
-    // Update the scrollable area's height.
-    var h = layout.center.state.innerHeight - get_table_header_and_footer_height();
-    $("div.dataTables_scrollBody").height(h + "px");
-    // // Update the scrollable area's width.
-    // var h = $("div.dataTables_scrollHeadInner").width();
-    // $("div.dataTables_scrollHead").width(w + "px");
-    // $("div.dataTables_scrollBody").width(w + "px");
-    theDataTable.draw(); // XXX is this really good?
-  }
-
-  function get_table_header_and_footer_height() {
-    // return 2*$("#table-wrapper table").height();
-    return ($("#table-wrapper .dataTables_scrollHead").height() + // header
-            $("#table-wrapper .dataTables_info").height() +       // footer
-            5);                                                   // fudge
-  }
-
-  function get_filter_data() {
-    var data = []
-    data.push({"name": "filter_snp_name",       "value": $("#filter_snp_name").val()});
-    data.push({"name": "filter_gene_name",      "value": $("#filter_gene_name").val()});
-    data.push({"name": "filter_gene_symbol",    "value": $("#filter_gene_symbol").val()});
-    data.push({"name": "filter_gene_accession", "value": $("#filter_gene_accession").val()});
-    data.push({"name": "filter_entrez_id",      "value": $("#filter_entrez_id").val()});
-    data.push({"name": "filter_chromosome",     "value": get_selected("filter_chromosome")});
-    data.push({"name": "filter_start",          "value": $("#filter_start").val()});
-    data.push({"name": "filter_stop",           "value": $("#filter_stop").val()});
-    return data;
-  }
-
-  theDataTable = $("#table-wrapper table").DataTable({
-    "dom": "rtiS",
-    //"bPaginate": false,
-    //"aaSorting": [[0, "desc"]],
-    // Server side source:
-    "processing": true,
-    "serverSide": true,
-    "ajaxSource": "combined_feed.php",
-    "filter": false,
-    "serverData": function (source, data, callback) {
-      data = data.concat(get_filter_data());
-      $.getJSON(source, data, function (json) { callback(json) });
-    },
-    "columnDefs": [{
-      "targets": 3, // containing genes
-      "data": null, // Use the full data source object for the renderer's source
-      "render": function(data, type, full, meta) {
-        // The format of the input data[3] is:
-        // snp_id;gene_id1,gene_symbol1;gene_id2,gene_symbol2...
-        // or:
-        // snp_id; (note trailing semicolon)
-        // if there are no containing genes.
-        var genes = data[3].split(";");
-        var snp_id = genes.shift();
-        if (genes[0] == "") // if there's no containing gene, don't display link
-          return "-";
-        var links = [];
-        for (var i = 0; i < genes.length; ++i) {
-          var tmp = genes[i].split(",");
-          var gene_id = tmp[0];
-          var gene_symbol = tmp[1];
-          links.push("<a href='javascript:boxplot(" + snp_id + ", " + gene_id + ")'>" + gene_symbol + "</a>");
-        }
-        return links.join(", ");
-      },
-      "sortable": false
-    }],
-    // Scroller-based infinite scrolling: 
-    //"scrollY": "200px",
-    "scrollY": (layout.center.state.innerHeight - get_table_header_and_footer_height()) + "px", // only provisional, reset by resize_table below
-    "scrollX": "100%",
-    //"scrollXInner": "120%",
-    "scroller": {
-      "loadingIndicator": false
-    },
-    "initComplete": resize_table
-  });
-
-  $("#filter-form").submit(function() {
-    resize_table();
-    //theDataTable.draw();
-    return false;
-  });
+  init_layout();
+  init_table();
+  init_form();
 });
 </script>
-
-
-<?php
-
-/*
-    gene_id             integer primary key,
-    gene_name           text,
-    gene_symbol         text,
-    gene_accession      text,
-    entrez_id           integer,
-    chromosome          text,
-    cytoband            text,
-    start               integer,
-    stop                integer,
-    strand              text,
-    cross_hybridization integer,
-    probeset_type       text,
-    X3014 real, B708 real, X3111 real, B290 real, B895 real, X3593 real, B900 real, X4005 real, B402 real, B996 real, X4114 real, A492 real, B420 real, X4279 real, A513 real, B482 real, X5471 real, A602 real, B499 real, X5509 real, A707 real, B562 real, X5716 real, A856 real, B580 real, X5800 real, A857 real, X5837 real, A932 real, X5899 real, B101 real, B625 real, N10 real, N11 real, N18 real, N19 real, N21 real, N25 real, N27 real, N28 real, N29 real, N31 real, N32 real, N34 real, N39 real, N40 real, N41 real, N44 real, N45 real, N47 real, N50 real, N52 real, N54 real, N57 real, N78 real, N80 real, N81 real, N84 real, N88 real, N95 real, N97 real, N104 real
-*/
-
-?>
