@@ -201,6 +201,10 @@ function get_table_body_height() {
 function resize_table() {
   // Update the scrollable area's height.
   $("div.dataTables_scrollBody").height(get_table_body_height() + "px");
+  
+  // Update the columns' (and the table's) width. This fixes a problem on
+  // Windows where the table doesn't quite fill the whole width of the pane.
+  nf_globals.data_table.columns.adjust();
 
   // Redraw the table. XXX: Is this necessary?
   nf_globals.data_table.draw();
