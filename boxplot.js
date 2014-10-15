@@ -1,4 +1,4 @@
-// From http://bl.ocks.org/mbostock/4061502
+// Slightly modified from http://bl.ocks.org/mbostock/4061502
 
 (function() {
 
@@ -106,7 +106,6 @@ d3.box = function() {
           .attr("y", function(d) { return x1(d[2]); })
           .attr("height", function(d) { return x1(d[0]) - x1(d[2]); });
 
-      // XXX nf right?
       box.exit().transition()
           .duration(duration)
           .style("opacity", 1e-6)
@@ -133,7 +132,6 @@ d3.box = function() {
           .attr("y1", x1)
           .attr("y2", x1);
 
-      // XXX nf right?
       medianLine.exit().transition()
           .duration(duration)
           .style("opacity", 1e-6)
@@ -218,7 +216,6 @@ d3.box = function() {
           .text(format)
           .attr("y", x1);
 
-      // XXX nf right?
       boxTick.exit().transition()
           .duration(duration)
           .style("opacity", 1e-6)
