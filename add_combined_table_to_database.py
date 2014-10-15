@@ -177,3 +177,6 @@ if args.step == 5:
     conn.execute("""
     CREATE INDEX combined_location on combined (chromosome, position);
     """)
+    conn.execute("""
+    CREATE INDEX combined_position on combined (position);
+    """) # useful for sorting
