@@ -139,7 +139,7 @@ $result = $stmt->execute();
  */
 $output = array(
     "query" => $query,
-    "sEcho" => intval($_GET['sEcho']),
+    "sEcho" => isset($_GET['sEcho']) ? intval($_GET['sEcho']) : 0,
     "iTotalRecords" => $iTotal,
     "iTotalDisplayRecords" => $iFilteredTotal,
     "aaData" => array()
