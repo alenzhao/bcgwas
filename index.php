@@ -2,12 +2,16 @@
 <?php require "header.php"; ?>
 <style>
 .input-line { margin-top: 0.6ex; margin-bottom: 0.6ex; }
+.input-line input { margin-top: 1px; margin-bottom: 1px; }
+.first-input-line { margin-top: 0; }
+.last-input-line { margin-bottom: 0; }
+.input-wrapper { white-space: nowrap; }
 </style>
 
 <div class="ui-layout-north">
 <form action="#" id="filter-form">
   <div style="float: right"><a href="logout.php">Logout</a></div>
-  <div class="input-line">
+  <div class="input-line first-input-line">
   <b>Find SNPs where...</b>
   </div>
   <div class="input-line">
@@ -26,7 +30,7 @@
       <input type="text" id="filter_gene_accession">,
     </span>
     <span class="input-wrapper">
-      and the Entrez id,
+      and the Entrez id
       <input type="text" id="filter_entrez_id">,
     </span>
     <span class="input-wrapper">
@@ -75,7 +79,7 @@
       (stop),
     </span>
   </div>
-  <div class="input-line">
+  <div class="input-line last-input-line">
     <input type="submit" value="Filter">
     <span style="margin-left: 2.4em">(or <a href="bcgwas_download.php">download</a> the raw data)</span>
   </div>
@@ -100,6 +104,10 @@
 
 <!-- 120 * 3 (width of 3 boxplots) + 0 (fudge) = 360 -->
 <div class="ui-layout-east">
+<div id="boxplot-splash" style="width: 360px;">
+Click on a gene in the table to see a boxplots of its expression levels,
+grouped by genotype.
+</div>
 <div id="boxplot-header" style="width: 360px; text-align: center; font-weight: bold;"></div>
 <div id="boxplot-wrapper" style="width: 360px;"></div>
 <table id="boxplot-footer" width="360" cellspacing="0" cellpadding="0">
@@ -302,11 +310,16 @@ function compute_boxplot_height() {
   var height = pane_height - header_height - footer_height - caption_height;
   if (height < 25)
     height = 25;
+  if (height > 360*2)
+    height = 360*2;
   return height;
 }
 
 // Actually draws the boxplots.
 function draw_boxplot(json) {
+  // Hide the splash screen.
+  $("#boxplot-splash").hide();
+
   // Parse the data, spliting up the expression levels among genotypes, and
   // finding the min and max values.
   var min = Infinity,
