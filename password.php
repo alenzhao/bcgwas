@@ -1,4 +1,8 @@
 <?php
+ini_set("display_errors", "1");
+error_reporting(E_ALL);
+?>
+<?php
 
 // This file implements a simple password-based login facility. Just include it
 // at the top of the page's main file, before anything else is done. The
@@ -21,10 +25,12 @@ if (!isset($_SESSION["is_logged_in"])) {
     // ... check that it was submitted correctly.
     $ok = FALSE;
     $f = fopen($password_db, "r");
-    while (($rec = fgetcsv($f)) !== FALSE) {
-      if ($rec[0] == $_POST["username"] && $rec[1] == $_POST["password"]) {
-        $ok = TRUE;
-        break;
+    if ($f !== FALSE) {
+      while (($rec = fgetcsv($f)) !== FALSE) {
+        if ($rec[0] == $_POST["username"] && $rec[1] == $_POST["password"]) {
+          $ok = TRUE;
+          break;
+        }
       }
     }
 
