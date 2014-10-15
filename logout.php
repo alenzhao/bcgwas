@@ -2,6 +2,6 @@
 
 session_start();
 unset($_SESSION["is_logged_in"]);
-header("Location: combined.php");
+header("Location: index.php");
 
 ?>
