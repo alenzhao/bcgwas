@@ -5,7 +5,9 @@
 // passwords are stored in $password_db, which is a simple two-column CSV file.
 // The first column is the username, and the second column is the password.
 
-$password_db = "../bcgwas_data/users.csv";
+require_once "config.php";
+
+$password_db = datadir() . "/users.csv";
 session_start();
 
 // If we are not logged in, either display a form or check that it was

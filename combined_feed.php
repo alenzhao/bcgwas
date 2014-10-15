@@ -3,7 +3,8 @@ ini_set('display_errors', "1");
 error_reporting(E_ALL);
 
 require "password.php";
-require_once 'filter.php';
+require_once "config.php";
+require_once "filter.php";
 
 /*
  * Script:    DataTables server-side script for PHP and SQLite3
@@ -32,7 +33,7 @@ $columns = array(
 $sTable = "combined";
 
 /* Database connection information */
-$dbName = "../bcgwas_data/bcgwas.db";
+$dbName = datadir() . "/bcgwas.db";
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
