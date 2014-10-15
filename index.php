@@ -174,17 +174,25 @@ function get_form_data() {
   return data;
 }
 
+// Determines whether we have specified a valid chromosome/start/stop combo.
+// Specifically, one can't filter by start/stop without also filtering by
+// chromosome.
+function has_valid_position_filter() {
+  var has_chromosome = (get_selected_chromosome() != "");
+  var has_start = ($("#filter_start").val() != "");
+  var has_stop = ($("#filter_stop").val() != "");
+  return has_chromosome || (!has_start && !has_stop);
+}
+
 // Initializes the form to filter SNPs.
 function init_form() {
   $("#filter-form").submit(function() {
-    resize_table();
+    if (has_valid_position_filter())
+      resize_table();
     return false;
   });
   $("#filter-form input, #filter-form select").change(function() {
-    var has_chromosome = (get_selected_chromosome() != "");
-    var has_start = ($("#filter_start").val() != "");
-    var has_stop = ($("#filter_stop").val() != "");
-    var need_location_msg = (!has_chromosome && (has_start || has_stop));
+    var need_location_msg = !has_valid_position_filter();
     if (need_location_msg)
       $("#location-msg").show();
     else
