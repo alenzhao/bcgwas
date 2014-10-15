@@ -82,6 +82,9 @@
   <div class="input-line last-input-line">
     <input type="submit" value="Filter">
     <span style="margin-left: 2.4em">(or <a href="bcgwas_download.php">download</a> the raw data)</span>
+    <span style="margin-left: 2.4em; display: none; color: red" id="location-msg">
+      (to filter by position, please select a chromosome)
+    </span>
   </div>
 </form>
 </div> <! -- ui-layout-north -->
@@ -176,6 +179,16 @@ function init_form() {
   $("#filter-form").submit(function() {
     resize_table();
     return false;
+  });
+  $("#filter-form input, #filter-form select").change(function() {
+    var has_chromosome = (get_selected_chromosome() != "");
+    var has_start = ($("#filter_start").val() != "");
+    var has_stop = ($("#filter_stop").val() != "");
+    var need_location_msg = (!has_chromosome && (has_start || has_stop));
+    if (need_location_msg)
+      $("#location-msg").show();
+    else
+      $("#location-msg").hide();
   });
 }
 
