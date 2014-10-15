@@ -1,10 +1,12 @@
-<?php include "header.php"; ?>
+<?php require "password.php"; ?>
+<?php require "header.php"; ?>
 <style>
 .input-line { margin-top: 0.6ex; margin-bottom: 0.6ex; }
 </style>
 
 <div class="ui-layout-north">
 <form action="#" id="filter-form">
+  <div style="float: right"><a href="logout.php">Logout</a></div>
   <div class="input-line">
   <b>Find SNPs where...</b>
   </div>
@@ -75,7 +77,7 @@
   </div>
   <div class="input-line">
     <input type="submit" value="Filter">
-    <span style="margin-left: 2.4em">(or <a href="bcgwas_download.zip">download</a> the raw data)</span>
+    <span style="margin-left: 2.4em">(or <a href="bcgwas_download.php">download</a> the raw data)</span>
   </div>
 </form>
 </div> <! -- ui-layout-north -->
